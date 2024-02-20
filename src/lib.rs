@@ -1,22 +1,20 @@
-use actix_web::*;
 use actix_web::dev::Server;
-async fn greet(req: HttpRequest) -> impl Responder {
-    let name = req.match_info().get("name").unwrap_or("World");
-    format!("Hello {}!", &name)
+use actix_web::*;
+use std::net::TcpListener;
+async fn subscribe() -> HttpResponse {
+    HttpResponse::Ok().finish()
 }
-
 async fn health_check() -> HttpResponse {
     HttpResponse::Ok().finish()
 }
 
-
-pub fn run() -> Result<Server, std::io::Error> {
+pub fn run(address: TcpListener) -> Result<Server, std::io::Error> {
     let server = HttpServer::new(|| {
         App::new()
             .route("/health_check", web::get().to(health_check))
-
+            .route("/subscriptions", web::post().to(subscribe))
     })
-        .bind("0.0.0.0:8000")?
-        .run();
+    .listen(address)?
+    .run();
     Ok(server)
 }

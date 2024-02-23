@@ -1,19 +1,10 @@
+mod routes;
+mod startup;
+use crate::routes::health_check::health_check;
+use crate::routes::subcriptions::subscribe;
 use actix_web::dev::Server;
 use actix_web::*;
 use std::net::TcpListener;
-
-#[derive(serde::Deserialize)]
-struct FormData{
-    email: String,
-    name: String
-}
-async fn subscribe(_form: web::Form<FormData>) -> HttpResponse {
-    HttpResponse::Ok().finish()
-}
-
-async fn health_check() -> HttpResponse {
-    HttpResponse::Ok().finish()
-}
 
 pub fn run(address: TcpListener) -> Result<Server, std::io::Error> {
     let server = HttpServer::new(|| {

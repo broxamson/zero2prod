@@ -1,5 +1,7 @@
 #[cfg(test)]
 mod test {
+    use sqlx::*;
+    use zero2prod::configuration::get_configuration;
     use std::net::TcpListener;
     fn spawn_app() -> String {
         let listener = TcpListener::bind("0.0.0.0:0").expect("Failed to bind random port");
@@ -29,6 +31,11 @@ mod test {
     async fn subscribe_returns_a_200_for_valid_form_data() {
         // Arrange
         let app_address = spawn_app();
+        let configuration = get_configuration().expect("failed to get config");
+        let connection_string = configuration.database.connection_string();
+        let _connection = PgConnection::connect(&connection_string)
+            .await
+            .expect("failed to connect to postgres");
         let client = reqwest::Client::new();
         let body = "name=le%20guin&email=ursula_le_guin%40gmail.com";
         // Act

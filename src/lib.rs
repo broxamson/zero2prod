@@ -1,6 +1,6 @@
 mod routes;
 mod startup;
-mod configuration;
+pub mod configuration;
 
 use crate::routes::health_check::health_check;
 use crate::routes::subcriptions::subscribe;

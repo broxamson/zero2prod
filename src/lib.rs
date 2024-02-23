@@ -1,5 +1,7 @@
 mod routes;
 mod startup;
+mod configuration;
+
 use crate::routes::health_check::health_check;
 use crate::routes::subcriptions::subscribe;
 use actix_web::dev::Server;

@@ -1,8 +1,11 @@
 #[cfg(test)]
 mod test {
-    use sqlx::*;
-    use zero2prod::configuration::get_configuration;
     use std::net::TcpListener;
+
+    use sqlx::*;
+
+    use zero2prod::configuration::get_configuration;
+
     fn spawn_app() -> String {
         let listener = TcpListener::bind("0.0.0.0:0").expect("Failed to bind random port");
         let port = listener.local_addr().unwrap().port();
@@ -33,7 +36,7 @@ mod test {
         let app_address = spawn_app();
         let configuration = get_configuration().expect("failed to get config");
         let connection_string = configuration.database.connection_string();
-        let _connection = PgConnection::connect(&connection_string)
+        let connection = PgConnection::connect(&connection_string)
             .await
             .expect("failed to connect to postgres");
         let client = reqwest::Client::new();
@@ -48,6 +51,13 @@ mod test {
             .expect("Failed to execute request.");
         // Assert
         assert_eq!(200, response.status().as_u16());
+
+        let saved = sqlx::query!("SELECT email, name FROM subscriptions",)
+            .fetch_one(&connection)
+            .await
+            .expect("Failed to fetch saved subscription");
+        assert_eq!(saved.email, "ursula_le_guin@gmail.com");
+        assert_eq!(saved.name, "le guin");
     }
 
     #[tokio::test]

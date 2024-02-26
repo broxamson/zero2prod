@@ -26,5 +26,5 @@ dotenvy_macro = "0.15.7"
 uuid = { version = "1.7.0", features = ["v4"] }
 
 
-[targert.x86_64-unknown-linux-gnu]
+[target.x86_64-unknown-linux-gnu]
 rustlfags = ["-C", "linker=clang", "-C", "link-arg=-fuse-ld=lld"]

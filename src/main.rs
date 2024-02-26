@@ -1,13 +1,13 @@
 use std::io::Error;
 
-use sqlx::{Connection, PgConnection};
+use sqlx::PgPool;
 
 use zero2prod::configuration::get_configuration;
 use zero2prod::startup::run;
 
 #[tokio::main]
 async fn main() -> actix_web::Result<(), Error> {
-    let connection = PgConnection::connect(
+    let connection = PgPool::connect(
         &get_configuration()
             .expect("Failed to read configuration")
             .database

@@ -2,22 +2,56 @@
 mod test {
     use std::net::TcpListener;
 
+    use sqlx::postgres::PgPool;
     use sqlx::*;
 
-    use zero2prod::configuration::get_configuration;
+    use zero2prod::configuration::{get_configuration, DatabaseSettings};
+    use zero2prod::startup::run;
 
-    fn spawn_app() -> String {
+    pub struct TestApp {
+        pub address: String,
+        pub db_pool: PgPool,
+    }
+
+    async fn spawn_app() -> TestApp {
+        let configuration = get_configuration().expect("Failed to read configuration.");
+        let connection_pool = PgPool::connect(&configuration.database.connection_string())
+            .await
+            .expect("Failed to connect to Postgres.");
         let listener = TcpListener::bind("0.0.0.0:0").expect("Failed to bind random port");
         let port = listener.local_addr().unwrap().port();
-        let server = zero2prod::run(listener).expect("Failed to bind address");
+        let server = run(listener, connection_pool.clone()).expect("Failed to bind address");
         let _ = tokio::spawn(server);
-        format!("http://0.0.0.0:{}", port)
+        let address = format!("http://0.0.0.0:{}", port);
+
+        TestApp {
+            address,
+            db_pool: connection_pool,
+        }
+    }
+
+    pub async fn configure_database(config: &DatabaseSettings) -> PgPool {
+        let connection = PgPool::connect(&config.connection_string_without_db())
+            .await
+            .expect("Failed to connect to Postgres.");
+        connection
+            .execute(&*format!(r#"CREATE DATABASE "{}";"#, config.database_name))
+            .await
+            .expect("Failed to create database.");
+        let connection_pool = PgPool::connect(&config.connection_string())
+            .await
+            .expect("Failed to connect to Postgres.");
+        sqlx::migrate!("./migrations")
+            .run(&connection_pool)
+            .await
+            .expect("Failed to migrate the database.");
+        connection_pool
     }
 
     #[tokio::test]
     async fn health_check_works() {
         // Arrange
-        let address = spawn_app();
+        let address = spawn_app().await.address;
         let client = reqwest::Client::new();
         // Act
         let response = client
@@ -33,7 +67,7 @@ mod test {
     #[tokio::test]
     async fn subscribe_returns_a_200_for_valid_form_data() {
         // Arrange
-        let app_address = spawn_app();
+        let app_address = spawn_app().await.address;
         let configuration = get_configuration().expect("failed to get config");
         let connection_string = configuration.database.connection_string();
         let connection = PgConnection::connect(&connection_string)
@@ -63,7 +97,7 @@ mod test {
     #[tokio::test]
     async fn subscribe_returns_a_400_when_data_is_missing() {
         // Arrange
-        let app_address = spawn_app();
+        let app_address = spawn_app().await.address;
         let client = reqwest::Client::new();
         let test_cases = vec![
             ("name=le%20guin", "missing the email"),

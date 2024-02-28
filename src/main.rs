@@ -20,7 +20,5 @@ async fn main() -> Result<(), io::Error> {
     let listener = std::net::TcpListener::bind(address)?;
 
     // Run the server
-    run(listener, connection)?.await?;
-
-    Ok(())
+    run(listener, connection)?.await
 }

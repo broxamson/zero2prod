@@ -20,7 +20,7 @@ mod test {
 
         // Create a temporary database
         let connection_pool = configure_database(&configuration.database).await;
-
+        dbg!(&configuration.database.database_name);
         // Start the application server
         let listener = TcpListener::bind("127.0.0.1:0").expect("Failed to bind random port");
         let port = listener.local_addr().unwrap().port();
@@ -34,19 +34,21 @@ mod test {
         }
     }
     async fn configure_database(config: &DatabaseSettings) -> PgPool {
-        // Create a temporary database
-        let mut connection = PgPool::connect(&config.connection_string_without_db())
+        // Connect to the PostgreSQL server without specifying a database
+        let connection = PgPool::connect(&config.connection_string_without_db())
             .await
-            .expect("Failed to connect to Postgres.");
+            .expect("Failed to connect to Postgres without specifying a database.");
+        dbg!(&config.database_name);
+        // Create a temporary database
         connection
             .execute(format!(r#"CREATE DATABASE "{}";"#, config.database_name).as_str())
             .await
             .expect("Failed to create database.");
 
-        // Connect to the temporary database
+        // Now connect to the temporary database
         let connection_pool = PgPool::connect(&config.connection_string())
             .await
-            .expect("Failed to connect to Postgres.");
+            .expect("Failed to connect to Postgres with the specified database.");
 
         // Run migrations on the temporary database
         sqlx::migrate!("./migrations")
@@ -56,6 +58,7 @@ mod test {
 
         connection_pool
     }
+
     #[tokio::test]
     async fn health_check_works() {
         // Arrange
@@ -97,7 +100,7 @@ mod test {
         assert_eq!(saved.email, "ursula_le_guin@gmail.com");
         assert_eq!(saved.name, "le guin");
     }
-    
+
     #[tokio::test]
     async fn subscribe_returns_a_400_when_data_is_missing() {
         // Arrange

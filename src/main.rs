@@ -1,4 +1,4 @@
-use std::io::Error;
+use std::io;
 
 use sqlx::PgPool;
 
@@ -6,17 +6,21 @@ use zero2prod::configuration::get_configuration;
 use zero2prod::startup::run;
 
 #[tokio::main]
-async fn main() -> actix_web::Result<(), Error> {
-    let connection = PgPool::connect(
-        &get_configuration()
-            .expect("Failed to read configuration")
-            .database
-            .connection_string(),
-    )
-    .await
-    .expect("Failed to connect to Postgres");
-    let configuration = get_configuration().expect("Failed To Read configuration");
-    let address = format!("0.0.0.0:{}", configuration.application_port);
+async fn main() -> Result<(), io::Error> {
+    // Fetch configuration once
+    let configuration = get_configuration().expect("Failed to read configuration.");
+
+    // Connect to the PostgreSQL database
+    let connection = PgPool::connect(&configuration.database.connection_string())
+        .await
+        .expect("Failed to connect to Postgres");
+
+    // Bind the server address
+    let address = format!("127.0.0.1:{}", configuration.application_port);
     let listener = std::net::TcpListener::bind(address)?;
-    run(listener, connection)?.await
+
+    // Run the server
+    run(listener, connection)?.await?;
+
+    Ok(())
 }

@@ -25,3 +25,6 @@ dotenvy = "0.15.7"
 dotenvy_macro = "0.15.7"
 uuid = { version = "1.7.0", features = ["v4"] }
 chrono = { version = "0.4.34", features = ["clock"], default-features = false }
+env_logger = "0.11.3"
+log = "0.4.21"
+tracing = "0.1.40"
